@@ -280,6 +280,25 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+
+        uintptr_t newVa = (uintptr_t) ROUNDDOWN(va, PGSIZE);
+	size_t newLen = (size_t) ROUNDUP(newLen, PGSIZE);
+
+	for (uintptr_t vaIter = newVa; vaIter < newVa + newLen; vaIter+=PGSIZE)
+	{
+                struct PageInfo *newPage = page_alloc(0);
+		if (!newPage)
+		{
+			panic("page_alloc failed.");
+		}
+
+		if (page_insert(e->env_pgdir, newPage, (void *) vaIter, PTE_U | PTE_W) != 0)
+		{
+			panic("page_insert failed.");
+		}
+	}
+	
+	return;
 }
 
 //
@@ -336,6 +355,24 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here.
+
+	// Switch to this virtual environments page directory
+	lcr3(uint32_t val)
+
+        struct Elf * elfHeader = (struct Elf *) binary;
+
+	if (elfHeader->->e_magic != ELF_MAGIC)
+	{
+		panic("Bad elf header.");
+	}
+
+	// Load each segment of type ELF_PROG_LOAD
+        struct Proghdr * ph = (struct Proghdr *) (binary + elfHeader->e_phoff); 
+	struct Proghdr * eph = ph + elfHeader->e_phnum;
+	
+	for(; ph < eph; ph++)
+	{
+	}
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
