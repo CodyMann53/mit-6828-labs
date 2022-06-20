@@ -357,7 +357,7 @@ load_icode(struct Env *e, uint8_t *binary)
 	// LAB 3: Your code here.
 
 	// Switch to this virtual environments page directory
-	lcr3(uint32_t val)
+	lcr3(PADDR(e->env_pgdir));
 
         struct Elf * elfHeader = (struct Elf *) binary;
 
@@ -372,12 +372,25 @@ load_icode(struct Env *e, uint8_t *binary)
 	
 	for(; ph < eph; ph++)
 	{
+		if (ph->p_type == ELF_PROG_LOAD)
+		{
+			assert(ph->filesz <= ph->memsz);		
+			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
+			memcpy(ph->p_va, binary + ph->p_offset, ph->p_filesz);
+			memset(ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+		}
 	}
 
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
+	region_alloc(e, (void *) (USTACKTOP - PGSIZE), PGSIZE);
 
 	// LAB 3: Your code here.
+	e->env_tf.tf_eip = elfHeader->e_entry;
+
+	// Switch back to the kernel page directory
+	lcr3(PADDR(kern_pgdir));
+	return;	
 }
 
 //
@@ -391,6 +404,16 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+
+	Env * newEnv = NULL;
+	if (env_alloc(&newEnv, 0) != 0)
+	{
+		panic("Failed to allocate a new environment.");	
+	}
+
+	load_icode(newEnv, binary);
+
+	return;
 }
 
 //
