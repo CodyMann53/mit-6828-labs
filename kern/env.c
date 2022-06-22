@@ -270,7 +270,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 // Pages should be writable by user and kernel.
 // Panic if any allocation attempt fails.
 //
-static void
+void
 region_alloc(struct Env *e, void *va, size_t len)
 {
 	// LAB 3: Your code here.
@@ -282,7 +282,8 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   (Watch out for corner-cases!)
 
         uintptr_t newVa = (uintptr_t) ROUNDDOWN(va, PGSIZE);
-	size_t newLen = (size_t) ROUNDUP(newLen, PGSIZE);
+	size_t newLen = 0;
+	newLen = (size_t) ROUNDUP(newLen, PGSIZE);
 
 	for (uintptr_t vaIter = newVa; vaIter < newVa + newLen; vaIter+=PGSIZE)
 	{
@@ -292,9 +293,10 @@ region_alloc(struct Env *e, void *va, size_t len)
 			panic("page_alloc failed.");
 		}
 
-		if (page_insert(e->env_pgdir, newPage, (void *) vaIter, PTE_U | PTE_W) != 0)
+		int r = 0;
+		if ((r = page_insert(e->env_pgdir, newPage, (void *) vaIter, PTE_U | PTE_W)) != 0)
 		{
-			panic("page_insert failed.");
+			panic("page_insert: %e.", r);
 		}
 	}
 	
@@ -329,13 +331,13 @@ load_icode(struct Env *e, uint8_t *binary)
 	// Hints:
 	//  Load each program segment into virtual memory
 	//  at the address specified in the ELF segment header.
-	//  You should only load segments with ph->p_type == ELF_PROG_LOAD.
-	//  Each segment's virtual address can be found in ph->p_va
-	//  and its size in memory can be found in ph->p_memsz.
-	//  The ph->p_filesz bytes from the ELF binary, starting at
-	//  'binary + ph->p_offset', should be copied to virtual address
-	//  ph->p_va.  Any remaining memory bytes should be cleared to zero.
-	//  (The ELF header should have ph->p_filesz <= ph->p_memsz.)
+	//  You should only load segments with p_type == ELF_PROG_LOAD.
+	//  Each segment's virtual address can be found in p_va
+	//  and its size in memory can be found in p_memsz.
+	//  The p_filesz bytes from the ELF binary, starting at
+	//  'binary + p_offset', should be copied to virtual address
+	//  p_va.  Any remaining memory bytes should be cleared to zero.
+	//  (The ELF header should have p_filesz <= ph->p_memsz.)
 	//  Use functions from the previous lab to allocate and map pages.
 	//
 	//  All page protection bits should be user read/write for now.
@@ -361,7 +363,7 @@ load_icode(struct Env *e, uint8_t *binary)
 
         struct Elf * elfHeader = (struct Elf *) binary;
 
-	if (elfHeader->->e_magic != ELF_MAGIC)
+	if (elfHeader->e_magic != ELF_MAGIC)
 	{
 		panic("Bad elf header.");
 	}
@@ -374,10 +376,9 @@ load_icode(struct Env *e, uint8_t *binary)
 	{
 		if (ph->p_type == ELF_PROG_LOAD)
 		{
-			assert(ph->filesz <= ph->memsz);		
 			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
-			memcpy(ph->p_va, binary + ph->p_offset, ph->p_filesz);
-			memset(ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+			memcpy((void *) ph->p_va, binary + ph->p_offset, ph->p_filesz);
+			memset((void *) (ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
 		}
 	}
 
@@ -405,12 +406,14 @@ env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
 
-	Env * newEnv = NULL;
-	if (env_alloc(&newEnv, 0) != 0)
+	struct Env * newEnv = NULL;
+	int r = 0;
+	if ((r = env_alloc(&newEnv, 0)) != 0)
 	{
-		panic("Failed to allocate a new environment.");	
+		panic("env_alloc: %e.", r);	
 	}
 
+	newEnv->env_type = type;
 	load_icode(newEnv, binary);
 
 	return;
@@ -530,7 +533,18 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+	if (curenv != NULL)
+	{
+		if (curenv->env_status == ENV_RUNNING)
+		{
+			curenv->env_status = ENV_RUNNABLE;
+		}
+	}
 
-	panic("env_run not yet implemented");
+	curenv = e;
+	curenv->env_status = ENV_RUNNING;
+	curenv->env_runs++;
+	lcr3(PADDR((void *) curenv->env_pgdir));
+ 	env_pop_tf(&curenv->env_tf);
 }
 
