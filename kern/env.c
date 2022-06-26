@@ -283,7 +283,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 
         uintptr_t newVa = (uintptr_t) ROUNDDOWN(va, PGSIZE);
 	size_t newLen = 0;
-	newLen = (size_t) ROUNDUP(newLen, PGSIZE);
+	newLen = (size_t) ROUNDUP(len, PGSIZE);
 
 	for (uintptr_t vaIter = newVa; vaIter < newVa + newLen; vaIter+=PGSIZE)
 	{
