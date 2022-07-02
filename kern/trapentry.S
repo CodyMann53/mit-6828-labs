@@ -4,8 +4,6 @@
 #include <inc/memlayout.h>
 #include <inc/trap.h>
 
-
-
 ###################################################################
 # exceptions/interrupts
 ###################################################################
@@ -47,9 +45,16 @@
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-
+TRAPHANDLER_NOEC(_divide_error, T_DIVIDE)
+TRAPHANDLER_NOEC(_debug, T_DEBUG)
+TRAPHANDLER_NOEC(_nmi, T_NMI)
+TRAPHANDLER_NOEC(_breakpoint, T_BRKPT)
+TRAPHANDLER_NOEC(_overflow, T_OFLOW)
+TRAPHANDLER_NOEC(_bound, T_BOUND)
+TRAPHANDLER_NOEC(_illegal_opcode, T_ILLOP)
 
 /*
  * Lab 3: Your code here for _alltraps
  */
+_alltraps:
 
