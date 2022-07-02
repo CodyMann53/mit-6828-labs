@@ -52,6 +52,7 @@ TRAPHANDLER_NOEC(_breakpoint, T_BRKPT)
 TRAPHANDLER_NOEC(_overflow, T_OFLOW)
 TRAPHANDLER_NOEC(_bound, T_BOUND)
 TRAPHANDLER_NOEC(_illegal_opcode, T_ILLOP)
+TRAPHANDLER_NOEC(_dev_not_avail, T_DEVICE)
 
 /*
  * Lab 3: Your code here for _alltraps
