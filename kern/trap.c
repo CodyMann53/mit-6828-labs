@@ -68,7 +68,7 @@ trap_init(void)
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, _divide_error, 0)
 	SETGATE(idt[T_DEBUG], 0, GD_KT, _debug, 0)
 	SETGATE(idt[T_NMI], 0, GD_KT, _nmi, 0)
-	SETGATE(idt[T_BRKPT], 0, GD_KT, _breakpoint, 0)
+	SETGATE(idt[T_BRKPT], 0, GD_KT, _breakpoint, 3)
 	SETGATE(idt[T_OFLOW], 0, GD_KT, _overflow, 0)
 	SETGATE(idt[T_BOUND], 0, GD_KT, _bound, 0)
 	SETGATE(idt[T_DEVICE], 0, GD_KT, _dev_not_avail, 0)
@@ -82,6 +82,7 @@ trap_init(void)
 	SETGATE(idt[T_ALIGN], 0, GD_KT, _alignment_check, 0)
 	SETGATE(idt[T_MCHK], 0, GD_KT, _machine_check, 0)
 	SETGATE(idt[T_SIMDERR], 0, GD_KT, _simd_floating_point, 0)
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, _syscall, 3)
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -166,6 +167,25 @@ trap_dispatch(struct Trapframe *tf)
 		page_fault_handler(tf);
 		return;
 	}
+	else if (tf->tf_trapno == T_BRKPT)
+	{
+		monitor(tf);
+		return;
+	}
+	// Generic system call: pass system call number in AX,
+	// up to five parameters in DX, CX, BX, DI, SI.
+	// Interrupt kernel with T_SYSCALL.
+	else if (tf->tf_trapno == T_SYSCALL)
+	{
+		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax, 
+				              tf->tf_regs.reg_edx, 
+					      tf->tf_regs.reg_ecx, 
+					      tf->tf_regs.reg_ebx, 
+					      tf->tf_regs.reg_edi, 
+					      tf->tf_regs.reg_esi);
+		return;	
+
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -214,7 +234,6 @@ trap(struct Trapframe *tf)
 	assert(curenv && curenv->env_status == ENV_RUNNING);
 	env_run(curenv);
 }
-
 
 void
 page_fault_handler(struct Trapframe *tf)

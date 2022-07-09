@@ -520,7 +520,7 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 		return NULL;
 	}
 
-	bool present = *entry * PTE_P;
+	bool present = *entry & PTE_P;
 	if (!present)
 	{
 		return NULL;
@@ -602,6 +602,19 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	for (uintptr_t iter = (uintptr_t) va; iter < ((uintptr_t) va + len); iter+=PGSIZE)
+	{
+		pte_t *pte_store = NULL;
+	       	if (page_lookup(env->env_pgdir, (void *) iter, &pte_store) == NULL)
+		{
+			return -E_FAULT;
+		}
+
+		if ((*pte_store & perm) != perm)
+		{
+			return -E_FAULT;
+		}
+	}
 
 	return 0;
 }

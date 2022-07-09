@@ -27,6 +27,7 @@ void _floating_point();
 void _alignment_check();
 void _machine_check();
 void _simd_floating_point();
+void _syscall();
 
 /* The kernel's interrupt descriptor table */
 extern struct Gatedesc idt[];
