@@ -70,8 +70,26 @@ void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
-
+	
 	// LAB 3: Your code here.
+	SETGATE(idt[T_DIVIDE], 0, GD_KT, _divide_error, 0)
+	SETGATE(idt[T_DEBUG], 0, GD_KT, _debug, 0)
+	SETGATE(idt[T_NMI], 0, GD_KT, _nmi, 0)
+	SETGATE(idt[T_BRKPT], 0, GD_KT, _breakpoint, 3)
+	SETGATE(idt[T_OFLOW], 0, GD_KT, _overflow, 0)
+	SETGATE(idt[T_BOUND], 0, GD_KT, _bound, 0)
+	SETGATE(idt[T_DEVICE], 0, GD_KT, _dev_not_avail, 0)
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, _double_fault, 0)
+	SETGATE(idt[T_TSS], 0, GD_KT, _invl_tss, 0)
+	SETGATE(idt[T_SEGNP], 0, GD_KT, _seg_not_present, 0)
+	SETGATE(idt[T_STACK], 0, GD_KT, _stack, 0)
+	SETGATE(idt[T_GPFLT], 0, GD_KT, _gen_prot, 0)
+	SETGATE(idt[T_PGFLT], 0, GD_KT, _page_fault, 0)
+	SETGATE(idt[T_FPERR], 0, GD_KT, _floating_point, 0)
+	SETGATE(idt[T_ALIGN], 0, GD_KT, _alignment_check, 0)
+	SETGATE(idt[T_MCHK], 0, GD_KT, _machine_check, 0)
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, _simd_floating_point, 0)
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, _syscall, 3)
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -176,6 +194,30 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	if (tf->tf_trapno == T_PGFLT)
+	{
+		page_fault_handler(tf);
+		return;
+	}
+	else if (tf->tf_trapno == T_BRKPT)
+	{
+		monitor(tf);
+		return;
+	}
+	// Generic system call: pass system call number in AX,
+	// up to five parameters in DX, CX, BX, DI, SI.
+	// Interrupt kernel with T_SYSCALL.
+	else if (tf->tf_trapno == T_SYSCALL)
+	{
+		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax, 
+				              tf->tf_regs.reg_edx, 
+					      tf->tf_regs.reg_ecx, 
+					      tf->tf_regs.reg_ebx, 
+					      tf->tf_regs.reg_edi, 
+					      tf->tf_regs.reg_esi);
+		return;	
+
+	}
 
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
@@ -259,7 +301,6 @@ trap(struct Trapframe *tf)
 		sched_yield();
 }
 
-
 void
 page_fault_handler(struct Trapframe *tf)
 {
@@ -271,6 +312,10 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
+	if ((tf->tf_cs & 3) == 0)
+	{
+		panic("Page fault from within the kernel. VA: %08x", fault_va);
+	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

@@ -20,4 +20,4 @@ enum {
 	MAXERROR
 };
 
-#endif	// !JOS_INC_ERROR_H */
+#endif	// !JOS_INC_ERROR_H
