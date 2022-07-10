@@ -606,12 +606,14 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 	{
 		pte_t *pte_store = NULL;
 	       	if (page_lookup(env->env_pgdir, (void *) iter, &pte_store) == NULL)
-		{
+		{	
+			user_mem_check_addr = iter;
 			return -E_FAULT;
 		}
 
 		if ((*pte_store & perm) != perm)
 		{
+			user_mem_check_addr = iter;
 			return -E_FAULT;
 		}
 	}
