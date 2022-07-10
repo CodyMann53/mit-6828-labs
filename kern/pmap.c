@@ -602,7 +602,7 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-	for (uintptr_t iter = (uintptr_t) va; iter < ((uintptr_t) va + len); iter+=PGSIZE)
+	for (uintptr_t iter = (uintptr_t) va; iter < (uintptr_t) ROUNDUP(va + len, PGSIZE); iter = ROUNDDOWN(iter + PGSIZE, PGSIZE))
 	{
 		pte_t *pte_store = NULL;
 	       	if (page_lookup(env->env_pgdir, (void *) iter, &pte_store) == NULL)
