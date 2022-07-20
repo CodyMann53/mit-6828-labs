@@ -89,7 +89,10 @@ mpsearch1(physaddr_t a, int len)
 	for (; mp < end; mp++)
 		if (memcmp(mp->signature, "_MP_", 4) == 0 &&
 		    sum(mp, sizeof(*mp)) == 0)
+		    {		
+			cprintf("Found the floating pointer.");
 			return mp;
+		    }
 	return NULL;
 }
 
