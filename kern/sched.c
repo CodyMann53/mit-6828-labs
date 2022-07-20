@@ -30,6 +30,20 @@ sched_yield(void)
 
 	// LAB 4: Your code here.
 
+	idle = curenv ? curenv : envs;  
+	for (struct Env * next = idle; next < envs + NENV; next++)
+	{
+		if (next->env_status == ENV_RUNNABLE)
+		{
+			env_run(next);
+		}
+	}
+
+	if (curenv && curenv->env_status == ENV_RUNNING)
+	{
+		env_run(idle);
+	}
+
 	// sched_halt never returns
 	sched_halt();
 }
